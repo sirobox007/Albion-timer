@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Albion Popular Builds</title>
+<meta name="theme-color" content="#12291f">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a guild's build board: clear, practical, sourced
+   IDEA: the in-game loadout screen, one card per build with the gear slots laid out
+   PICTURE: each card's row of item icons and ability keys is the picture
+   COLOUR and TYPE: forest field and gold like the rest of the app; role colours on a small tag
+   LAYOUT: filter chips on top, card grid below; cards stack on phones */
+:root{color-scheme:light dark;
+--bg:light-dark(#ffffff,#0c1712);--ink:light-dark(#17211c,#e9efe9);--mute:light-dark(#5b6b62,#9db0a5);
+--card:light-dark(#f3f6f3,#132219);--line:light-dark(#dbe3dd,#21362a);
+--field:#12291f;--field2:#1a3a2c;--gold:#e0b44c;--goldInk:light-dark(#8a6410,#e0b44c);
+--dmg:light-dark(#c0392b,#ff7a66);--buff:light-dark(#1d8a4f,#5fd68f);--debuff:light-dark(#a8326e,#f07ab4);--cc:light-dark(#7a4fc4,#b99bff);--heal:light-dark(#1d8a4f,#7fe0a6);--other:light-dark(#8a6410,#e0b44c);--mob:light-dark(#1f6fb0,#7cc0ff)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:Cinzel,Georgia,serif;font-weight:700;line-height:1.1;margin:0}
+button{font:inherit;font-size:16px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:0 14px;cursor:pointer;font-weight:600}
+button:focus-visible,a:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+header{background:var(--field);color:#eef3ee;padding:max(16px,calc(env(safe-area-inset-top) + 10px)) max(5vw,16px) 16px}
+.top{max-width:1240px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.top h1{font-size:clamp(22px,3vw,30px);color:#fff}.top h1 span{color:var(--gold)}
+.nav{display:flex;gap:8px;flex-wrap:wrap}.nav a{color:#eef3ee;text-decoration:none;font-weight:600;border:1px solid #2f5a45;border-radius:10px;padding:9px 13px;white-space:nowrap}
+main{padding:18px max(5vw,16px) 48px}
+.wrap{max-width:1240px;margin:0 auto}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;margin-bottom:8px}
+.chips button{flex:none;min-height:40px}
+.chips button[aria-pressed=true]{background:var(--gold);color:#1b1404;border-color:var(--gold)}
+.note{font-size:14px;color:var(--mute);margin:6px 0 16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.ch{display:flex;justify-content:space-between;gap:10px;align-items:start}
+.ch h2{font-size:21px}
+.role{flex:none;font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--field);color:#fff}
+.role.Tank{background:#2f5f8a}.role.Healer{background:#2e7d4f}.role.Support{background:#6b4fa0}
+.tags{display:flex;flex-wrap:wrap;gap:6px}.tags span{font-size:12px;padding:2px 9px;border-radius:999px;border:1px solid var(--line);color:var(--mute)}
+.why{margin:0;font-size:15px}
+.slots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.slot{display:grid;justify-items:center;gap:2px;text-align:center;text-decoration:none;color:inherit;padding:6px 2px;border-radius:12px;background:var(--bg);border:1px solid var(--line);min-height:104px}
+.slot img{width:52px;height:52px;object-fit:contain}
+.slot b{font-size:12px;line-height:1.2;font-weight:600}
+.slot small{font-size:11px;color:var(--mute)}
+.slot.empty{opacity:.45}
+.slot .alt{font-size:11px;color:var(--goldInk)}
+.abs{display:grid;gap:6px}
+.ab{display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;align-items:start;text-align:left;font-weight:500;padding:8px 10px;min-height:44px;background:var(--bg)}
+.key{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:7px;background:var(--field);color:var(--gold);font-weight:700;font-size:14px}
+.ab b{display:block;font-weight:600}
+.ab small{color:var(--mute)}
+.desc{font-size:14px;margin-top:6px;white-space:pre-line}
+.m-dmg{color:var(--dmg);font-weight:600}.m-buff{color:var(--buff);font-weight:600}.m-debuff{color:var(--debuff);font-weight:600}.m-cc{color:var(--cc);font-weight:600}.m-heal{color:var(--heal);font-weight:600}.m-other{color:var(--other);font-weight:600}.m-mobility,.m-shield{color:var(--mob);font-weight:600}
+.extra{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;font-size:14px}
+.extra span{color:var(--mute)}
+.src{font-size:12px;color:var(--mute);margin-top:auto}
+.src a{color:var(--goldInk)}
+.foot{font-size:13px;color:var(--mute);margin-top:22px}
+@media(max-width:600px){.grid{grid-template-columns:minmax(0,1fr)}.slot img{width:44px;height:44px}.slot{min-height:96px}}
+</style>
+</head>
+<body>
+<header><div class="top"><h1>Popular <span>Builds</span></h1><nav class="nav"><a href="./">Timers</a><a href="gear.html">Gear</a><a href="map.html">Map</a><a href="craft.html">Crafting</a></nav></div></header>
+<main><div class="wrap">
+  <div class="chips" id="tags" role="group" aria-label="Activity"></div>
+  <div class="chips" id="roles" role="group" aria-label="Role"></div>
+  <p class="note" id="count"></p>
+  <div class="grid" id="grid"></div>
+  <p class="foot">Builds collected from current 2026 guides; each card links to its source and date. The meta changes with balance patches, so check the date. Tap an item to open it in the Gear guide, or an ability to read what it does.</p>
+</div></main>
+<script>
+{
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const markup = t => esc(t).replace(/\[(\w+)\]/g, (m, k) => `<span class="m-${k.toLowerCase()}">`).replace(/\[\/\w+\]/g, '</span>');
+const IMG = id => `https://render.albiononline.com/v1/item/${encodeURIComponent(id)}.png?size=64`;
+const SLOTS = [['w', 'Weapon'], ['o', 'Off-hand'], ['h', 'Head'], ['c', 'Chest'], ['s', 'Shoes']];
+const KEYS = { q: 'Q', w: 'W', e: 'E', p: 'P' };
+let B = null, G = null, line = {}, tag = 'All', role = 'All';
+function card(b) {
+  const slots = SLOTS.map(([k, lab]) => {
+    const ids = b.items[k];
+    if (!ids) {
+      const wl = b.items.w && line[b.items.w[0]];
+      if (k === 'o' && wl && wl.two) return `<div class="slot empty"><div style="height:52px"></div><b>None</b><small>Two-handed weapon</small></div>`;
+      return `<div class="slot empty"><div style="height:52px"></div><b>Your choice</b><small>${lab}</small></div>`;
+    }
+    const l = line[ids[0]], t = l && (l.tiers.find(x => x.t === 6) || l.tiers[l.tiers.length - 1]);
+    return `<a class="slot" href="gear.html#${encodeURIComponent(ids[0])}"><img loading="lazy" alt="" src="${t ? IMG(t.u) : ''}" onerror="this.style.visibility='hidden'"><b>${esc(l ? l.name : ids[0])}</b><small>${lab}</small>${ids.length > 1 ? `<span class="alt">or ${esc(ids.slice(1).map(i => line[i] ? line[i].name : i).join(' / '))}</span>` : ''}</a>`;
+  }).join('');
+  const abs = Object.entries(b.ab).map(([k, ids]) => {
+    const s = G.spells[ids[0]];
+    const alts = ids.slice(1).map(i => G.spells[i] ? G.spells[i].n : i);
+    return `<button type="button" class="ab" aria-expanded="false"><span class="key">${KEYS[k]}</span><span><b>${esc(s ? s.n : ids[0])}</b>${alts.length ? `<small>or ${esc(alts.join(' / '))}</small>` : ''}<div class="desc" hidden>${ids.map(i => G.spells[i] ? `<b>${esc(G.spells[i].n)}</b>${G.spells[i].cd ? ` <small>· cooldown ${esc(G.spells[i].cd)}s</small>` : ''}<br>${markup(G.spells[i].d)}` : '').join('<br><br>')}</div></span></button>`;
+  }).join('');
+  const ex = Object.entries(b.extra).map(([k, v]) => `<span>${esc(k)}</span><b>${esc(v)}</b>`).join('');
+  const d = new Date(b.src[2] + 'T12:00:00Z').toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
+  return `<article class="card"><div class="ch"><h2>${esc(b.n)}</h2><span class="role ${esc(b.role.split(' ')[0])}">${esc(b.role)}</span></div>
+    <div class="tags">${b.tags.map(t => `<span>${esc(t)}</span>`).join('')}</div>
+    <p class="why">${esc(b.why)}</p>
+    <div class="slots">${slots}</div>
+    ${abs ? `<div class="abs">${abs}</div>` : '<p class="note" style="margin:0">Abilities: pick what suits your group. Open the weapon in the Gear guide to see the options.</p>'}
+    ${ex ? `<div class="extra">${ex}</div>` : ''}
+    <p class="src">Source: <a href="${esc(b.src[1])}">${esc(b.src[0])}</a> · ${esc(d)}</p></article>`;
+}
+function render() {
+  const tags = ['All', ...new Set(B.builds.flatMap(b => b.tags))];
+  const roles = ['All', ...new Set(B.builds.map(b => b.role))];
+  $('#tags').innerHTML = tags.map(t => `<button type="button" data-t="${esc(t)}" aria-pressed="${t === tag}">${esc(t === 'All' ? 'All activities' : t)}</button>`).join('');
+  $('#roles').innerHTML = roles.map(r => `<button type="button" data-r="${esc(r)}" aria-pressed="${r === role}">${esc(r === 'All' ? 'All roles' : r)}</button>`).join('');
+  const list = B.builds.filter(b => (tag === 'All' || b.tags.includes(tag)) && (role === 'All' || b.role === role));
+  $('#count').textContent = `${list.length} build${list.length === 1 ? '' : 's'}`;
+  $('#grid').innerHTML = list.length ? list.map(card).join('') : '<p class="note">No builds match. Try another filter.</p>';
+}
+$('#tags').onclick = e => { const b = e.target.closest('[data-t]'); if (b) { tag = b.dataset.t; render(); } };
+$('#roles').onclick = e => { const b = e.target.closest('[data-r]'); if (b) { role = b.dataset.r; render(); } };
+$('#grid').onclick = e => {
+  const a = e.target.closest('.ab'); if (!a) return;
+  const d = a.querySelector('.desc'), open = d.hidden; d.hidden = !open; a.setAttribute('aria-expanded', String(open));
+};
+Promise.all([fetch('builds.json').then(r => r.json()), fetch('gear.json').then(r => r.json())]).then(([b, g]) => {
+  B = b; G = g; G.lines.forEach(l => line[l.id] = l); render();
+}).catch(() => { $('#grid').innerHTML = '<p class="note">Couldn\'t load builds. Check that builds.json and gear.json are uploaded, then reload.</p>'; });
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Albion Route Planner</title>
+<meta name="theme-color" content="#12291f">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a scout's travel planner: calm, clear about danger
+   IDEA: the in-game world map with a route drawn on it, like a courier's chart
+   PICTURE: the zone map itself, coloured by zone type, with the route in gold
+   COLOUR and TYPE: zone colours as in game (blue, yellow, red, black) on a sea-green chart; forest and gold chrome; Cinzel + Inter
+   LAYOUT: planner panel beside the map on wide screens, above it on phones; route steps below */
+:root{color-scheme:light dark;
+--bg:light-dark(#ffffff,#0c1712);--ink:light-dark(#17211c,#e9efe9);--mute:light-dark(#5b6b62,#9db0a5);
+--card:light-dark(#f3f6f3,#132219);--line:light-dark(#dbe3dd,#21362a);
+--field:#12291f;--field2:#1a3a2c;--gold:#e0b44c;--goldInk:light-dark(#8a6410,#e0b44c);
+--sea:light-dark(#cfe3dc,#0f2a26);--zb:#3d7fd9;--zy:#e2b93b;--zr:#d64545;--zk:#1c1c1e;--zc:#ffffff;--zt:#b9c2bd}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2{font-family:Cinzel,Georgia,serif;font-weight:700;line-height:1.1;margin:0}
+button,input,select{font:inherit;font-size:16px}
+button{min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:0 14px;cursor:pointer;font-weight:600}
+button.pri{background:var(--gold);color:#1b1404;border-color:var(--gold)}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+input,select{min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:0 12px;width:100%}
+label.f{font-size:13px;color:var(--mute);display:block;margin-bottom:4px;font-weight:500}
+header{background:var(--field);color:#eef3ee;padding:max(16px,calc(env(safe-area-inset-top) + 10px)) max(5vw,16px) 16px}
+.top{max-width:1240px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.top h1{font-size:clamp(22px,3vw,30px);color:#fff}.top h1 span{color:var(--gold)}
+.nav{display:flex;gap:8px}.nav a{color:#eef3ee;text-decoration:none;font-weight:600;border:1px solid #2f5a45;border-radius:10px;padding:9px 13px;white-space:nowrap}
+main{padding:18px max(5vw,16px) 40px}
+.wrap{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:18px;align-items:start}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.ft{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:8px;align-items:end;margin-bottom:10px}
+.ft button{padding:0;font-size:18px}
+.opts{display:grid;gap:4px;margin:12px 0}
+.ck{display:flex;align-items:center;gap:10px;min-height:40px;cursor:pointer}
+.ck input{width:20px;height:20px;min-height:0;accent-color:var(--goldInk)}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;flex:none;border:1px solid #0006}
+.d-blue{background:var(--zb)}.d-yellow{background:var(--zy)}.d-red{background:var(--zr)}.d-black{background:var(--zk);border-color:#fff8}.d-city{background:var(--zc)}.d-town{background:var(--zt)}
+.go{width:100%;margin-top:6px}
+.sum{margin-top:14px;padding:12px;border-radius:12px;background:var(--field);color:#eef3ee}
+.sum b{font-size:22px;display:block;color:#fff}
+.sum .warn{color:#ffb4a8}.sum small{color:#b9cdbf}
+.mapbox{position:relative;border-radius:16px;overflow:hidden;background:var(--sea);border:1px solid var(--line);height:min(72vh,720px);min-height:380px;touch-action:none;user-select:none;-webkit-user-select:none}
+.mapbox svg{position:absolute;inset:0;width:100%;height:100%;cursor:grab}
+.mapbox svg.drag{cursor:grabbing}
+.zoom{position:absolute;right:10px;top:10px;display:grid;gap:6px;z-index:2}
+.zoom button{width:44px;padding:0;font-size:20px;background:var(--bg)}
+.legend{position:absolute;left:10px;bottom:10px;display:flex;flex-wrap:wrap;gap:6px 12px;background:color-mix(in srgb,var(--bg) 88%,transparent);padding:8px 10px;border-radius:10px;font-size:13px;max-width:calc(100% - 20px)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.pop{position:absolute;z-index:3;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:0 8px 28px #0004;width:220px}
+.pop b{display:block}.pop small{color:var(--mute)}
+.pop .row{display:flex;gap:6px;margin-top:10px}.pop .row button{flex:1;min-height:40px;padding:0 8px;font-size:15px}
+.steps{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:6px}
+.steps li{display:grid;grid-template-columns:28px 14px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.steps .n{color:var(--mute);font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+.steps .t{font-size:13px;color:var(--mute);white-space:nowrap}
+.steps .portal{font-size:13px;color:var(--goldInk);grid-column:3/-1}
+.hint{font-size:13px;color:var(--mute);margin:10px 0 0}
+.err{color:var(--zr);font-weight:600}
+@media(max-width:860px){.wrap{grid-template-columns:minmax(0,1fr)}.mapbox{height:62vh}}
+@media(max-width:600px){.legend{font-size:12px;gap:4px 8px;padding:6px 8px;left:6px;bottom:6px}.legend .dot{width:10px;height:10px}}
+</style>
+</head>
+<body>
+<header><div class="top"><h1>Route <span>Planner</span></h1><nav class="nav"><a href="./">Timers</a><a href="gear.html">Gear</a><a href="craft.html">Crafting</a><a href="builds.html">Builds</a></nav></div></header>
+<main>
+  <div class="wrap">
+    <section class="panel" aria-label="Plan a route">
+      <form id="plan">
+        <div class="ft"><div><label class="f" for="from">From</label><input id="from" list="zones" placeholder="e.g. Thetford" autocomplete="off"></div><button type="button" id="swap" aria-label="Swap from and to">⇅</button></div>
+        <div class="ft" style="grid-template-columns:minmax(0,1fr)"><div><label class="f" for="to">To</label><input id="to" list="zones" placeholder="e.g. Caerleon" autocomplete="off"></div></div>
+        <datalist id="zones"></datalist>
+        <div class="opts">
+          <label class="ck"><input type="checkbox" id="noRed"><span class="dot d-red"></span>Avoid red zones</label>
+          <label class="ck"><input type="checkbox" id="noBlack"><span class="dot d-black"></span>Avoid black zones (bz)</label>
+          <label class="ck"><input type="checkbox" id="noYellow"><span class="dot d-yellow"></span>Avoid yellow zones</label>
+          <label class="ck"><input type="checkbox" id="portals" checked>Use city portals to the Outlands</label>
+          <div style="margin-top:6px"><label class="f" for="maxT">Highest zone tier allowed</label>
+            <select id="maxT"><option value="9">Any tier</option><option value="7">T7 and below (no T8)</option><option value="6">T6 and below</option><option value="5">T5 and below</option><option value="4">T4 and below</option></select></div>
+        </div>
+        <button class="pri go" type="submit">Find fastest route</button>
+      </form>
+      <div id="result"></div>
+      <p class="hint">Tip: tap any zone on the map to set it as start or destination. Your start and destination zones are always allowed, even if their type is avoided.</p>
+    </section>
+    <section>
+      <div class="mapbox" id="mapbox">
+        <svg id="svg" role="img" aria-label="Albion world map"></svg>
+        <div class="zoom"><button type="button" id="zin" aria-label="Zoom in">+</button><button type="button" id="zout" aria-label="Zoom out">−</button><button type="button" id="zfit" aria-label="Show whole map">⤢</button></div>
+        <div class="legend"><span><i class="dot d-blue"></i>Blue</span><span><i class="dot d-yellow"></i>Yellow</span><span><i class="dot d-red"></i>Red</span><span><i class="dot d-black"></i>Black</span><span><i class="dot d-city"></i>City</span><span><i class="dot d-town"></i>Outlands town</span></div>
+      </div>
+      <ol class="steps" id="steps"></ol>
+    </section>
+  </div>
+</main>
+
+<script>
+{
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const KIND = { blue: 'Blue zone', yellow: 'Yellow zone', red: 'Red zone', black: 'Black zone', city: 'City', town: 'Outlands town', hall: "Conquerors' Hall" };
+const FILL = { blue: 'var(--zb)', yellow: 'var(--zy)', red: 'var(--zr)', black: 'var(--zk)', city: 'var(--zc)', town: 'var(--zt)', hall: 'var(--zt)' };
+const STEP = 80, PORTAL = 150;
+let W = null, adj = null, byName = new Map(), route = null;
+const svg = $('#svg');
+const KEY = 'albion-route-v1';
+let saved = {}; try { saved = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
+
+/* ---------- graph ---------- */
+const nid = (z, e) => z * 64 + e + 1;            // e = -1 means zone centre
+function build() {
+  adj = new Map();
+  const add = (a, b, w, p) => { (adj.get(a) || adj.set(a, []).get(a)).push([b, w, p]); (adj.get(b) || adj.set(b, []).get(b)).push([a, w, p]); };
+  W.z.forEach((z, i) => {
+    const pts = [[0, 0], ...z[5]];
+    for (let a = 0; a < pts.length; a++) for (let b = a + 1; b < pts.length; b++)
+      add(nid(i, a - 1), nid(i, b - 1), Math.hypot(pts[a][0] - pts[b][0], pts[a][1] - pts[b][1]), 0);
+  });
+  for (const [a, ae, b, be, pt] of W.l) add(nid(a, ae), nid(b, be), pt ? PORTAL : STEP, pt);
+}
+function findRoute(s, t, o) {
+  const ok = i => {
+    if (i === s || i === t) return true;
+    const k = W.z[i][1], tier = W.z[i][2];
+    if (o.noRed && k === 'red') return false;
+    if (o.noBlack && (k === 'black' || k === 'town')) return false;
+    if (o.noYellow && k === 'yellow') return false;
+    if (['blue', 'yellow', 'red', 'black'].includes(k) && tier > o.maxT) return false;
+    return true;
+  };
+  const S = nid(s, -1), T = nid(t, -1), dist = new Map([[S, 0]]), prev = new Map(), viaPortal = new Map();
+  const heap = [[0, S]];
+  const push = x => { heap.push(x); let i = heap.length - 1; while (i) { const p = (i - 1) >> 1; if (heap[p][0] <= heap[i][0]) break; [heap[p], heap[i]] = [heap[i], heap[p]]; i = p; } };
+  const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === i) break; [heap[m], heap[i]] = [heap[i], heap[m]]; i = m; } } return top; };
+  while (heap.length) {
+    const [d, u] = pop();
+    if (u === T) break;
+    if (d > dist.get(u)) continue;
+    for (const [v, w, p] of adj.get(u) || []) {
+      if (p && !o.portals) continue;
+      if (!ok(Math.floor(v / 64))) continue;
+      const nd = d + w;
+      if (nd < (dist.has(v) ? dist.get(v) : Infinity)) { dist.set(v, nd); prev.set(v, u); viaPortal.set(v, p); push([nd, v]); }
+    }
+  }
+  if (!dist.has(T)) return null;
+  const zones = []; let u = T, pending = false;
+  while (u !== undefined) {
+    const z = Math.floor(u / 64);
+    if (!zones.length || zones[0].z !== z) zones.unshift({ z, portal: false });
+    if (pending) { zones[0].portal = true; pending = false; }
+    if (viaPortal.get(u)) pending = true;   // the zone before u was left through a portal
+    u = prev.get(u);
+  }
+  return { zones, dist: dist.get(T) };
+}
+
+/* ---------- map drawing ---------- */
+let vb = null, full = null;
+function setVB() { svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`); svg.dataset.k = (full.w / vb.w).toFixed(2); labelsForZoom(); }
+function labelsForZoom() {
+  const k = full.w / vb.w;
+  svg.querySelectorAll('.zl').forEach(t => t.style.display = k > 2.6 ? '' : 'none');
+  const fs = Math.max(2.2, 11 / Math.sqrt(k) / (svg.clientWidth / vb.w > 0 ? 1 : 1));
+  svg.style.setProperty('--fs', (vb.w / svg.clientWidth * 13).toFixed(2) + 'px');
+}
+function fit(pad = 1.06) {
+  const pts = W.z.filter(z => z[7]);
+  const xs = pts.map(z => z[3]), ys = pts.map(z => -z[4]);
+  let x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const r = svg.clientWidth / Math.max(1, svg.clientHeight);
+  let w = (x1 - x0) * pad, h = (y1 - y0) * pad;
+  if (w / h < r) w = h * r; else h = w / r;
+  vb = { x: (x0 + x1) / 2 - w / 2, y: (y0 + y1) / 2 - h / 2, w, h }; full = { ...vb }; setVB();
+}
+function draw() {
+  const Z = W.z;
+  const lines = W.l.filter(([a, , b, , pt]) => !pt && Z[a][7] && Z[b][7] && a !== b)
+    .map(([a, , b]) => `<line x1="${Z[a][3]}" y1="${-Z[a][4]}" x2="${Z[b][3]}" y2="${-Z[b][4]}"/>`).join('');
+  const nodes = Z.map((z, i) => !z[7] ? '' : `<circle class="zn" data-i="${i}" cx="${z[3]}" cy="${-z[4]}" r="${z[1] === 'city' || z[1] === 'town' ? 7.5 : 5.2}" fill="${FILL[z[1]]}"/>`).join('');
+  const big = Z.map((z, i) => z[7] && (z[1] === 'city' || z[1] === 'town') ? `<text class="cl" x="${z[3] + 9}" y="${-z[4] + 3}">${esc(z[0])}</text>` : '').join('');
+  const small = Z.map((z, i) => z[7] && !(z[1] === 'city' || z[1] === 'town') ? `<text class="zl" x="${z[3] + 6.5}" y="${-z[4] + 2}">${esc(z[0])}</text>` : '').join('');
+  svg.innerHTML = `<style>
+    line{stroke:light-dark(#6c8a80,#4d6e62);stroke-width:1.1;vector-effect:non-scaling-stroke}
+    .zn{stroke:light-dark(#0b1a14,#cfe0d5);stroke-width:1;vector-effect:non-scaling-stroke;cursor:pointer}
+    .cl{font:700 var(--fs,11px) Inter,sans-serif;fill:light-dark(#0b1a14,#f1f5f1);paint-order:stroke;stroke:light-dark(#ffffffcc,#0c1712cc);stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+    .zl{font:500 calc(var(--fs,11px)*.8) Inter,sans-serif;fill:light-dark(#22332b,#cfe0d5);paint-order:stroke;stroke:light-dark(#ffffffaa,#0c1712aa);stroke-width:2.5px;pointer-events:none}
+    .rt{fill:none;stroke:var(--gold);stroke-width:6;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;opacity:.95}
+    .rt2{fill:none;stroke:#1b1404;stroke-width:9;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;opacity:.35}
+    .pp{fill:none;stroke:var(--gold);stroke-width:3;stroke-dasharray:6 6;vector-effect:non-scaling-stroke}
+    .end{stroke:#1b1404;stroke-width:2.5;vector-effect:non-scaling-stroke}
+  </style><g id="lines">${lines}</g><g id="rt"></g><g id="nodes">${nodes}</g><g id="ends"></g><g>${small}${big}</g>`;
+}
+function portalBetween(i, j) { for (let k = i; k < j; k++) if (route.zones[k].portal) return true; return false; }
+function shownIdx() { return route.zones.map((x, i) => i).filter(i => W.z[route.zones[i].z][7]); }
+function drawRoute() {
+  const g = svg.querySelector('#rt'), e = svg.querySelector('#ends');
+  if (!route) { g.innerHTML = ''; e.innerHTML = ''; return; }
+  const Z = W.z, idx = shownIdx(), segs = [], portals = [];
+  let cur = [];
+  idx.forEach((i, n) => {
+    const z = Z[route.zones[i].z], p = `${z[3]},${-z[4]}`;
+    if (n && portalBetween(idx[n - 1], i)) { if (cur.length > 1) segs.push(cur); const q = Z[route.zones[idx[n - 1]].z]; portals.push(`${q[3]},${-q[4]} ${p}`); cur = []; }
+    cur.push(p);
+  });
+  if (cur.length > 1) segs.push(cur);
+  g.innerHTML = segs.map(s => `<polyline class="rt2" points="${s.join(' ')}"/><polyline class="rt" points="${s.join(' ')}"/>`).join('')
+    + portals.map(s => `<polyline class="pp" points="${s}"/>`).join('');
+  const s = Z[route.zones[0].z], t = Z[route.zones[route.zones.length - 1].z];
+  e.innerHTML = [s, t].filter(z => z[7]).map((z, i) => `<circle class="end" cx="${z[3]}" cy="${-z[4]}" r="10" fill="${i ? 'var(--gold)' : '#fff'}"/>`).join('');
+}
+
+/* ---------- pan, zoom, tap ---------- */
+const ptrs = new Map(); let start = null, moved = false;
+const toWorld = (cx, cy) => { const r = svg.getBoundingClientRect(); return { x: vb.x + (cx - r.left) / r.width * vb.w, y: vb.y + (cy - r.top) / r.height * vb.h }; };
+function zoomAt(f, cx, cy) {
+  const k = full.w / (vb.w / f); if (k < .8 || k > 40) return;
+  const p = toWorld(cx, cy); vb = { x: p.x - (p.x - vb.x) / f, y: p.y - (p.y - vb.y) / f, w: vb.w / f, h: vb.h / f }; setVB();
+}
+svg.addEventListener('pointerdown', e => { svg.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); start = { vb: { ...vb }, pts: [...ptrs.values()].map(p => ({ ...p })) }; moved = false; svg.classList.add('drag'); closePop(); });
+svg.addEventListener('pointermove', e => {
+  if (!ptrs.has(e.pointerId)) return;
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  const P = [...ptrs.values()], r = svg.getBoundingClientRect();
+  if (P.length === 1 && start.pts.length === 1) {
+    const dx = P[0].x - start.pts[0].x, dy = P[0].y - start.pts[0].y;
+    if (Math.abs(dx) + Math.abs(dy) > 6) moved = true;
+    vb = { ...start.vb, x: start.vb.x - dx / r.width * start.vb.w, y: start.vb.y - dy / r.height * start.vb.h }; setVB();
+  } else if (P.length === 2 && start.pts.length === 2) {
+    moved = true;
+    const d0 = Math.hypot(start.pts[0].x - start.pts[1].x, start.pts[0].y - start.pts[1].y), d1 = Math.hypot(P[0].x - P[1].x, P[0].y - P[1].y);
+    const f = d1 / Math.max(1, d0), cx = (P[0].x + P[1].x) / 2, cy = (P[0].y + P[1].y) / 2;
+    const w = start.vb.w / f, h = start.vb.h / f; if (full.w / w < .8 || full.w / w > 40) return;
+    const mx = start.vb.x + ((start.pts[0].x + start.pts[1].x) / 2 - r.left) / r.width * start.vb.w;
+    const my = start.vb.y + ((start.pts[0].y + start.pts[1].y) / 2 - r.top) / r.height * start.vb.h;
+    vb = { x: mx - (cx - r.left) / r.width * w, y: my - (cy - r.top) / r.height * h, w, h }; setVB();
+  }
+});
+const endPtr = e => {
+  const was = ptrs.has(e.pointerId); ptrs.delete(e.pointerId);
+  if (ptrs.size) { start = { vb: { ...vb }, pts: [...ptrs.values()].map(p => ({ ...p })) }; return; }
+  svg.classList.remove('drag');
+  if (was && !moved && e.type === 'pointerup') {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const n = el && el.closest && el.closest('.zn');
+    if (n) openPop(+n.dataset.i, e.clientX, e.clientY); else nearestTap(e.clientX, e.clientY);
+  }
+};
+svg.addEventListener('pointerup', endPtr); svg.addEventListener('pointercancel', endPtr);
+svg.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.deltaY < 0 ? 1.25 : 0.8, e.clientX, e.clientY); }, { passive: false });
+const centre = () => { const r = svg.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+$('#zin').onclick = () => zoomAt(1.5, ...centre()); $('#zout').onclick = () => zoomAt(1 / 1.5, ...centre()); $('#zfit').onclick = () => fit();
+function nearestTap(cx, cy) {
+  const p = toWorld(cx, cy), r = svg.getBoundingClientRect(), tol = 22 / r.width * vb.w;
+  let best = -1, bd = Infinity;
+  W.z.forEach((z, i) => { if (!z[7]) return; const d = Math.hypot(z[3] - p.x, -z[4] - p.y); if (d < bd) { bd = d; best = i; } });
+  if (best >= 0 && bd < tol) openPop(best, cx, cy);
+}
+
+/* ---------- popup ---------- */
+let pop = null;
+function closePop() { if (pop) { pop.remove(); pop = null; } }
+function openPop(i, cx, cy) {
+  closePop();
+  const z = W.z[i], box = $('#mapbox').getBoundingClientRect();
+  pop = document.createElement('div'); pop.className = 'pop';
+  pop.innerHTML = `<b>${esc(z[0])}</b><small>${esc(KIND[z[1]])}${['blue', 'yellow', 'red', 'black'].includes(z[1]) ? ' · Tier ' + z[2] : ''}</small><div class="row"><button type="button" data-a="from">Start here</button><button type="button" data-a="to">Go here</button></div>`;
+  $('#mapbox').appendChild(pop);
+  const x = Math.min(box.width - 230, Math.max(10, cx - box.left - 110)), y = Math.min(box.height - 110, Math.max(10, cy - box.top + 14));
+  pop.style.left = x + 'px'; pop.style.top = y + 'px';
+  pop.onclick = e => { const b = e.target.closest('[data-a]'); if (!b) return; $('#' + b.dataset.a).value = z[0]; closePop(); if ($('#from').value && $('#to').value) run(); };
+}
+
+/* ---------- planner ---------- */
+const opts = () => ({ noRed: $('#noRed').checked, noBlack: $('#noBlack').checked, noYellow: $('#noYellow').checked, portals: $('#portals').checked, maxT: +$('#maxT').value });
+function remember() { try { localStorage.setItem(KEY, JSON.stringify({ from: $('#from').value, to: $('#to').value, ...opts() })); } catch (e) {} }
+function run() {
+  const s = byName.get($('#from').value.trim().toLowerCase()), t = byName.get($('#to').value.trim().toLowerCase());
+  remember();
+  if (s === undefined || t === undefined) { $('#result').innerHTML = `<p class="err">${s === undefined ? 'Pick a start zone from the list.' : 'Pick a destination from the list.'}</p>`; return; }
+  route = s === t ? { zones: [{ z: s }], dist: 0 } : findRoute(s, t, opts());
+  drawRoute();
+  if (!route) {
+    $('#result').innerHTML = '<div class="sum"><b>No route found</b><small>Nothing connects these zones with the options you picked. Try allowing another zone type or a higher tier.</small></div>';
+    $('#steps').innerHTML = ''; return;
+  }
+  const shownI = route.zones.map((x, i) => i).filter(i => W.z[route.zones[i].z][1] !== 'hall');
+  const shown = shownI.map(i => route.zones[i]);
+  const cnt = k => shown.filter(x => W.z[x.z][1] === k).length;
+  const red = cnt('red'), black = cnt('black'), yellow = cnt('yellow'), portals = route.zones.filter(x => x.portal).length;
+  const maxTier = Math.max(0, ...shown.filter(x => ['blue', 'yellow', 'red', 'black'].includes(W.z[x.z][1])).map(x => W.z[x.z][2]));
+  const danger = [red && `${red} red`, black && `${black} black`, yellow && `${yellow} yellow`].filter(Boolean).join(', ');
+  $('#result').innerHTML = `<div class="sum"><b>${shown.length - 1} zone${shown.length - 1 === 1 ? '' : 's'} to travel</b>
+    <small>${danger ? `<span class="${red || black ? 'warn' : ''}">Crosses ${danger} zone${red + black + yellow === 1 ? '' : 's'}</span>` : 'Safe the whole way: only blue zones and cities'}${maxTier ? ` · highest tier T${maxTier}` : ''}${portals ? ` · uses ${portals} portal${portals > 1 ? 's' : ''} (costs silver)` : ''}</small></div>`;
+  $('#steps').innerHTML = shown.map((x, i) => {
+    const z = W.z[x.z], openW = ['blue', 'yellow', 'red', 'black'].includes(z[1]);
+    const portalNext = i < shown.length - 1 && portalBetween(shownI[i], shownI[i + 1]);
+    return `<li><span class="n">${i + 1}</span><span class="dot d-${z[1]}"></span><span>${esc(z[0])}</span><span class="t">${openW ? 'T' + z[2] : esc(KIND[z[1]])}</span>${portalNext ? '<span class="portal">↳ Take the portal (Conquerors\' Hall)</span>' : ''}</li>`;
+  }).join('');
+  // zoom to route
+  const pts = shown.filter(x => W.z[x.z][7]).map(x => W.z[x.z]);
+  if (pts.length) {
+    const xs = pts.map(z => z[3]), ys = pts.map(z => -z[4]), r = svg.clientWidth / Math.max(1, svg.clientHeight);
+    let w = Math.max(60, (Math.max(...xs) - Math.min(...xs)) * 1.35), h = Math.max(60, (Math.max(...ys) - Math.min(...ys)) * 1.35);
+    if (w / h < r) w = h * r; else h = w / r;
+    vb = { x: (Math.max(...xs) + Math.min(...xs)) / 2 - w / 2, y: (Math.max(...ys) + Math.min(...ys)) / 2 - h / 2, w, h }; setVB();
+  }
+}
+$('#plan').onsubmit = e => { e.preventDefault(); run(); };
+$('#swap').onclick = () => { const a = $('#from').value; $('#from').value = $('#to').value; $('#to').value = a; if ($('#from').value && $('#to').value) run(); };
+['noRed', 'noBlack', 'noYellow', 'portals', 'maxT'].forEach(id => $('#' + id).onchange = () => { if (route) run(); else remember(); });
+
+/* ---------- load ---------- */
+fetch('world.json').then(r => { if (!r.ok) throw 0; return r.json(); }).then(d => {
+  W = d; build();
+  W.z.forEach((z, i) => { if (z[7] || z[1] === 'city') if (!byName.has(z[0].toLowerCase())) byName.set(z[0].toLowerCase(), i); });
+  const names = W.z.filter(z => z[7]).map(z => z[0]).sort((a, b) => a.localeCompare(b));
+  $('#zones').innerHTML = names.map(n => `<option value="${esc(n)}"></option>`).join('');
+  draw(); fit();
+  if (saved.from) $('#from').value = saved.from; else $('#from').value = 'Thetford';
+  if (saved.to) $('#to').value = saved.to; else $('#to').value = 'Caerleon';
+  for (const k of ['noRed', 'noBlack', 'noYellow', 'portals']) if (k in saved) $('#' + k).checked = !!saved[k];
+  if (saved.maxT) $('#maxT').value = String(saved.maxT);
+  run();
+  new ResizeObserver(() => { if (vb) { const r = svg.clientWidth / Math.max(1, svg.clientHeight); vb.h = vb.w / r; full.h = full.w / r; setVB(); } }).observe(svg);
+}).catch(err => { console.error(err && err.stack); $('#result').innerHTML = '<p class="err">Couldn\'t load the map. Check that world.json is uploaded next to map.html, then reload.</p>'; });
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
